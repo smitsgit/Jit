@@ -1,6 +1,6 @@
 import os
 from contextlib import suppress
-from typing import Annotated
+from typing import Annotated, List
 
 import typer
 from pathlib import Path
@@ -15,6 +15,8 @@ app = typer.Typer()
 root_dir = None
 git_repo = None
 
+REGULAR_MODE = "100644"
+EXECUTALE_MODE = "100755"
 
 @app.command()
 def init(repo_path: str):
@@ -66,11 +68,14 @@ def store_tree(entries, git_repo):
     return tree_sha
 
 
-def store_files(git_repo, workspace_files):
+def store_files(git_repo, workspace_files: List[Path]):
     entries = []
+    mode = REGULAR_MODE
     for file in workspace_files:
         sha_hash = git_repo.store_file(file)
-        entries.append(TreeEntry(file.name, sha=sha_hash))
+        if os.access(file, os.X_OK):
+            mode = EXECUTALE_MODE
+        entries.append(TreeEntry(file.name, mode=mode,sha=sha_hash))
     return entries
 
 

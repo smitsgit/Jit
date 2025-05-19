@@ -1,0 +1,19 @@
+[project]
+name = "jit"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "click<8.2.0",
+    "python-dotenv>=1.1.0",
+    "typer>=0.15.3",
+]
+
+[project.scripts]
+jit = "jit.cli:app"
+
+exclude = [
+  "/.*",
+  "/docs",
+  "/tests",
+]

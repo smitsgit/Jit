@@ -23,32 +23,54 @@ class Blob:
         return f"Blob({self.data})"
 
 
-class TreeEntry:
+class FileEntry:
     def __init__(self, name, mode="10644", sha=""):
         self.name = name
         self.mode = mode
         self.sha = sha
 
     def __repr__(self):
-        return f"TreeEntry({self.name}, {self.mode}, {self.sha})"
+        return f"FileEntry({self.name}, {self.mode}, {self.sha})"
+
+class DirEntry:
+    def __init__(self, name, mode="40000", sha=""):
+        self.name = name
+        self.mode = mode
+        self.sha = sha
+
+    def __repr__(self):
+        return f"DirEntry({self.name}, {self.mode}, {self.sha})"
 
 
 class Tree:
-    def __init__(self, entries: List[TreeEntry]):
-        self.entries = entries
+    def __init__(self, file_entries: List[FileEntry], dir_entries: List[DirEntry],
+                 root=None, parent=None):
+        self.file_entries = file_entries
+        self.dir_entries = dir_entries
+        self.parent = parent
+        self.root = root
 
     def type_(self):
         return "tree"
 
     def get_binary_content(self):
         content = b""
-        for entry in self.entries:
+        for entry in self.file_entries:
             content += content.join(
                 [
                     entry.mode.encode("utf-8") + " ".encode("utf-8") + entry.name.encode("utf-8")
                     + "\0".encode("utf-8") + bytes.fromhex(entry.sha)
                 ]
             )
+
+        for entry in self.dir_entries:
+            content += content.join(
+                [
+                    entry.mode.encode("utf-8") + " ".encode("utf-8") + entry.name.encode("utf-8")
+                    + "\0".encode("utf-8") + bytes.fromhex(entry.sha)
+                ]
+            )
+
         tree_content = f"{self.type_()} {len(content)}\0".encode("utf-8") + content
         return tree_content
 
@@ -114,17 +136,17 @@ class GitRepo:
 
         return GitRepo()
 
-    def list_files(self):
+    def list_files(self, root_dir: Path):
         ignore_directories = [".git", ".venv", "__pycache__", ".idea", "dist", "jit.egg-info"]
         """List all files in the given directory."""
         files = []
-        for item in self.root_dir.iterdir():
+        dirs = []
+        for item in root_dir.iterdir():
             if item.is_file():
-                print(item.name)
                 files.append(item)
             elif item.is_dir() and item.name not in ignore_directories:
-                self.list_files(item)
-        return files
+                dirs.append(item)
+        return files, dirs
 
     def store_file(self, file):
         """Store a file in the git repository."""
@@ -136,9 +158,9 @@ class GitRepo:
         content = blob.get_binary_content()
         return self.write_compressed_content(content)
 
-    def store_tree(self, entries: List[TreeEntry]):
+    def store_tree(self, file_entries: List[FileEntry], dir_entries: List[DirEntry]):
         """Store a tree in the git repository."""
-        tree = Tree(entries)
+        tree = Tree(file_entries=file_entries, dir_entries=dir_entries)
         tree_content = tree.get_binary_content()
         return self.write_compressed_content(tree_content)
 

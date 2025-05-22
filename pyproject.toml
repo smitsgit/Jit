@@ -10,10 +10,4 @@ dependencies = [
 ]
 
 [project.scripts]
-jit = "jit.cli:app"
-
-exclude = [
-  "/.*",
-  "/docs",
-  "/tests",
-]
+jit = "jit:main"
